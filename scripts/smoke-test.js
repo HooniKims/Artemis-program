@@ -9,17 +9,20 @@ async function countCanvasPixels(page) {
     const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
     const pixels = new Uint8Array(4);
     let nonBlack = 0;
+    let colorSum = 0;
     let total = 0;
     for (let ix = 1; ix <= 18; ix += 1) {
       for (let iy = 1; iy <= 28; iy += 1) {
         const x = Math.floor((canvas.width * ix) / 19);
         const y = Math.floor((canvas.height * iy) / 29);
         gl.readPixels(x, canvas.height - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-        if (pixels[3] > 0 && pixels[0] + pixels[1] + pixels[2] > 15) nonBlack += 1;
+        const brightness = pixels[0] + pixels[1] + pixels[2];
+        if (pixels[3] > 0 && brightness > 15) nonBlack += 1;
+        colorSum += brightness;
         total += 1;
       }
     }
-    return { nonBlack, total };
+    return { nonBlack, total, colorSum };
   });
 }
 
@@ -83,6 +86,20 @@ async function runViewport(browser, viewport) {
     throw new Error(`${viewport.name}: canvas appears blank (${pixels.nonBlack}/${pixels.total})`);
   }
 
+  const canvasBox = await page.locator("#mission-canvas").boundingBox();
+  await page.waitForTimeout(1600);
+  const wheelBefore = await countCanvasPixels(page);
+  await page.mouse.move(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2);
+  await page.mouse.wheel(0, -700);
+  await page.waitForTimeout(500);
+  const wheelAfter = await countCanvasPixels(page);
+  const wheelDelta =
+    Math.abs(wheelBefore.nonBlack - wheelAfter.nonBlack) +
+    Math.abs(wheelBefore.colorSum - wheelAfter.colorSum) / 1000;
+  if (wheelDelta < 1) {
+    throw new Error(`${viewport.name}: wheel zoom did not affect the active guided view`);
+  }
+
   await page.click('button[data-view="window"]');
   await page.waitForTimeout(300);
   const windowOverlay = await page.evaluate(() =>
@@ -90,7 +107,6 @@ async function runViewport(browser, viewport) {
   );
   if (!windowOverlay) throw new Error(`${viewport.name}: window overlay did not activate`);
 
-  const canvasBox = await page.locator("#mission-canvas").boundingBox();
   await page.mouse.dblclick(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2);
   await page.waitForTimeout(250);
   const freeViewActive = await page.evaluate(() =>

@@ -70,6 +70,7 @@ const state = {
   speed: 600,
   currentTime: 0,
   view: "overview",
+  guidedZoom: 1,
   lastSliderSync: 0,
   lastHudPaint: 0,
   earthRadius: 1,
@@ -672,8 +673,16 @@ function updateCamera(delta) {
   }
 
   const blend = 1 - Math.pow(0.001, delta);
+  applyGuidedZoom(desiredPosition, desiredTarget);
   camera.position.lerp(desiredPosition, blend * 0.65);
   controls.target.lerp(desiredTarget, blend * 0.8);
+}
+
+function applyGuidedZoom(position, target) {
+  const offset = position.clone().sub(target);
+  if (offset.lengthSq() < 0.001) return;
+  const distance = THREE.MathUtils.clamp(offset.length() * state.guidedZoom, 0.18, 220);
+  position.copy(target).add(offset.normalize().multiplyScalar(distance));
 }
 
 function orientVehicle(group, position, velocity) {
@@ -781,7 +790,7 @@ ui.slider.addEventListener("input", () => {
 
 document.querySelectorAll(".view-button").forEach((button) => {
   button.addEventListener("click", () => {
-    setActiveView(button.dataset.view);
+    setActiveView(button.dataset.view, { resetGuidedZoom: true });
   });
 });
 
@@ -806,10 +815,22 @@ renderer.domElement.addEventListener("dblclick", (event) => {
   if (target) zoomToPoint(target.point, target.distance);
 });
 
-function setActiveView(view) {
+renderer.domElement.addEventListener(
+  "wheel",
+  (event) => {
+    if (!state.mission || state.view === "free") return;
+    event.preventDefault();
+    const zoomFactor = Math.exp(event.deltaY * 0.001);
+    state.guidedZoom = THREE.MathUtils.clamp(state.guidedZoom * zoomFactor, 0.18, 5.5);
+  },
+  { passive: false },
+);
+
+function setActiveView(view, options = {}) {
   document.querySelectorAll(".view-button").forEach((item) => {
     item.classList.toggle("active", item.dataset.view === view);
   });
+  if (options.resetGuidedZoom) state.guidedZoom = 1;
   state.view = view;
   controls.enabled = view === "free";
   cockpitOverlay.classList.toggle("visible", ui.toggles.cockpit.checked || state.view === "window");
