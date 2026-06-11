@@ -55,6 +55,8 @@ async function runViewport(browser, viewport) {
     primaryBottom: document.querySelector(".hud-primary").getBoundingClientRect().bottom,
     panelTop: document.querySelector(".hud-panel").getBoundingClientRect().top,
     overflowX: document.documentElement.scrollWidth > window.innerWidth,
+    numericStyle: getComputedStyle(document.querySelector("#earth-distance")).fontVariantNumeric,
+    numericFeatures: getComputedStyle(document.querySelector("#earth-distance")).fontFeatureSettings,
   }));
 
   if (status.stage !== "Closest approach") throw new Error(`${viewport.name}: wrong stage`);
@@ -64,6 +66,9 @@ async function runViewport(browser, viewport) {
     throw new Error(`${viewport.name}: unexpected moon distance ${status.moonDistance}`);
   }
   if (status.overflowX) throw new Error(`${viewport.name}: horizontal overflow`);
+  if (!status.numericStyle.includes("tabular-nums") && !status.numericFeatures.includes("tnum")) {
+    throw new Error(`${viewport.name}: telemetry numerals are not fixed width`);
+  }
   if (viewport.name === "mobile" && status.primaryBottom > status.panelTop) {
     throw new Error(`${viewport.name}: HUD panels overlap`);
   }

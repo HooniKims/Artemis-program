@@ -67,6 +67,7 @@ const state = {
   currentTime: 0,
   view: "overview",
   lastSliderSync: 0,
+  lastHudPaint: 0,
   earthRadius: 1,
   moonRadius: 0.2727,
   ksc: null,
@@ -440,7 +441,11 @@ function setTime(nextTime, forceSlider) {
 
   const stateAtTime = getStateAt(state.currentTime);
   updateSceneState(stateAtTime);
-  updateHud(stateAtTime);
+  const now = performance.now();
+  if (forceSlider || !state.playing || now - state.lastHudPaint > 220) {
+    updateHud(stateAtTime);
+    state.lastHudPaint = now;
+  }
   updateEventFocus(stateAtTime.event);
 
   if (forceSlider || performance.now() - state.lastSliderSync > 100) {
@@ -567,7 +572,7 @@ function updateSceneState(stateAtTime) {
   entryGlow.material.opacity = activeEntry ? 0.72 : 0;
   entryGlow.scale.setScalar(activeEntry ? 2.2 + Math.sin(performance.now() * 0.012) * 0.2 : 1);
 
-  ui.signal.textContent = activeBlackout ? "BLACKOUT" : "SIGNAL";
+  setText(ui.signal, activeBlackout ? "BLACKOUT" : "SIGNAL");
   ui.signal.classList.toggle("lost", activeBlackout);
   trajectoryLine.visible = true;
   launchBridgeLine.visible = true;
@@ -600,16 +605,20 @@ function updateTrail(time) {
 
 function updateHud(stateAtTime) {
   const event = stateAtTime.event;
-  ui.stage.textContent = event?.phase ?? "Mission";
-  ui.utc.textContent = new Date(state.currentTime).toISOString().replace(".000Z", "Z");
-  ui.met.textContent = formatMet(state.currentTime - Date.parse(state.mission.meta.launchTime));
-  ui.earthDistance.textContent = `${formatNumber(stateAtTime.earthDistanceKm)} km`;
-  ui.moonDistance.textContent = `${formatNumber(stateAtTime.moonDistanceKm)} km`;
-  ui.speed.textContent = `${stateAtTime.speedKms.toFixed(2)} km/s`;
-  ui.mode.textContent = stateAtTime.mode;
-  ui.briefTitle.textContent = event?.title ?? "Artemis II";
-  ui.briefBody.textContent = event?.body ?? "NASA 공개 데이터를 따라 임무를 재생합니다.";
-  ui.sourceChip.textContent = event?.source ?? "NASA/JSC/FOD/FDO OEM";
+  setText(ui.stage, event?.phase ?? "Mission");
+  setText(ui.utc, new Date(state.currentTime).toISOString().replace(".000Z", "Z"));
+  setText(ui.met, formatMet(state.currentTime - Date.parse(state.mission.meta.launchTime)));
+  setText(ui.earthDistance, `${formatNumber(stateAtTime.earthDistanceKm)} km`);
+  setText(ui.moonDistance, `${formatNumber(stateAtTime.moonDistanceKm)} km`);
+  setText(ui.speed, `${stateAtTime.speedKms.toFixed(2)} km/s`);
+  setText(ui.mode, stateAtTime.mode);
+  setText(ui.briefTitle, event?.title ?? "Artemis II");
+  setText(ui.briefBody, event?.body ?? "NASA 공개 데이터를 따라 임무를 재생합니다.");
+  setText(ui.sourceChip, event?.source ?? "NASA/JSC/FOD/FDO OEM");
+}
+
+function setText(element, value) {
+  if (element.textContent !== value) element.textContent = value;
 }
 
 function updateEventFocus(active) {
