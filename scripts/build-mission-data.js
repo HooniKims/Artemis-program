@@ -28,6 +28,11 @@ function parseOem(text) {
     });
 }
 
+function parseCreationDate(text) {
+  const match = text.match(/^CREATION_DATE\s*=\s*(\S+)/m);
+  return match ? `${match[1]}Z` : null;
+}
+
 function mag(values) {
   return Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
 }
@@ -49,7 +54,9 @@ if (!fs.existsSync(OEM_FILE)) {
   throw new Error(`Missing OEM file: ${OEM_FILE}`);
 }
 
-const states = parseOem(fs.readFileSync(OEM_FILE, "utf8"));
+const oemText = fs.readFileSync(OEM_FILE, "utf8");
+const sourceCreationDate = parseCreationDate(oemText);
+const states = parseOem(oemText);
 if (states.length < 10) {
   throw new Error(`OEM parser found only ${states.length} usable states`);
 }
@@ -89,7 +96,7 @@ const mission = {
     ephemerisStart: samples[0].epoch + "Z",
     entryInterface: samples[samples.length - 1].epoch + "Z",
     splashdownTime: "2026-04-11T00:07:27Z",
-    generatedAt: new Date().toISOString(),
+    generatedAt: sourceCreationDate ?? samples[0].epoch + "Z",
     sampleCount: samples.length,
     stats: {
       maxEarthDistanceKmFromOem: Number(maxEarth.km.toFixed(3)),
