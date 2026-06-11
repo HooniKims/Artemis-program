@@ -57,6 +57,8 @@ async function runViewport(browser, viewport) {
     overflowX: document.documentElement.scrollWidth > window.innerWidth,
     numericStyle: getComputedStyle(document.querySelector("#earth-distance")).fontVariantNumeric,
     numericFeatures: getComputedStyle(document.querySelector("#earth-distance")).fontFeatureSettings,
+    speedSelectColor: getComputedStyle(document.querySelector("#speed-select")).color,
+    speedSelectFill: getComputedStyle(document.querySelector("#speed-select")).webkitTextFillColor,
   }));
 
   if (status.stage !== "Closest approach") throw new Error(`${viewport.name}: wrong stage`);
@@ -68,6 +70,9 @@ async function runViewport(browser, viewport) {
   if (status.overflowX) throw new Error(`${viewport.name}: horizontal overflow`);
   if (!status.numericStyle.includes("tabular-nums") && !status.numericFeatures.includes("tnum")) {
     throw new Error(`${viewport.name}: telemetry numerals are not fixed width`);
+  }
+  if (status.speedSelectColor === "rgb(255, 255, 255)" || status.speedSelectFill === "rgb(255, 255, 255)") {
+    throw new Error(`${viewport.name}: speed selector text is white`);
   }
   if (viewport.name === "mobile" && status.primaryBottom > status.panelTop) {
     throw new Error(`${viewport.name}: HUD panels overlap`);
@@ -84,6 +89,17 @@ async function runViewport(browser, viewport) {
     document.querySelector("#cockpit-overlay")?.classList.contains("visible"),
   );
   if (!windowOverlay) throw new Error(`${viewport.name}: window overlay did not activate`);
+
+  const canvasBox = await page.locator("#mission-canvas").boundingBox();
+  await page.mouse.dblclick(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2);
+  await page.waitForTimeout(250);
+  const freeViewActive = await page.evaluate(() =>
+    document.querySelector('button[data-view="free"]')?.classList.contains("active"),
+  );
+  if (!freeViewActive) throw new Error(`${viewport.name}: double-click did not enter free zoom view`);
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(100);
+
   if (pageErrors.length) throw new Error(`${viewport.name}: page errors: ${pageErrors.join("; ")}`);
 
   await page.close();

@@ -43,6 +43,7 @@ select {
   width: 100%;
   height: 100%;
   display: block;
+  cursor: crosshair;
 }
 
 .hud {
@@ -255,8 +256,20 @@ select {
   width: 100%;
   min-height: 38px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  color: #06121c;
+  background: #edf8ff;
+  color-scheme: light;
+  -webkit-text-fill-color: #06121c;
+  font-weight: 800;
+}
+
+select option {
+  color: #06121c;
+  background: #f7fbff;
+}
+
+.speed-control {
+  color: #d7e6f2;
 }
 
 .timeline-label {

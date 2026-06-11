@@ -55,10 +55,14 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.maxDistance = 220;
 controls.minDistance = 0.08;
+controls.enabled = false;
 
 const textureLoader = new THREE.TextureLoader();
 const missionClock = new THREE.Clock();
 const reusableVector = new THREE.Vector3();
+const pointer = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+raycaster.params.Line.threshold = 0.14;
 const labels = new Map();
 const state = {
   mission: null,
@@ -777,11 +781,7 @@ ui.slider.addEventListener("input", () => {
 
 document.querySelectorAll(".view-button").forEach((button) => {
   button.addEventListener("click", () => {
-    document.querySelectorAll(".view-button").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    state.view = button.dataset.view;
-    controls.enabled = state.view === "free";
-    cockpitOverlay.classList.toggle("visible", ui.toggles.cockpit.checked || state.view === "window");
+    setActiveView(button.dataset.view);
   });
 });
 
@@ -799,3 +799,66 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+renderer.domElement.addEventListener("dblclick", (event) => {
+  if (!state.mission) return;
+  const target = getDoubleClickTarget(event);
+  if (target) zoomToPoint(target.point, target.distance);
+});
+
+function setActiveView(view) {
+  document.querySelectorAll(".view-button").forEach((item) => {
+    item.classList.toggle("active", item.dataset.view === view);
+  });
+  state.view = view;
+  controls.enabled = view === "free";
+  cockpitOverlay.classList.toggle("visible", ui.toggles.cockpit.checked || state.view === "window");
+}
+
+function getDoubleClickTarget(event) {
+  const bounds = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+  pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const hits = raycaster.intersectObjects(
+    [orion, rocket, earth, moon, trajectoryLine, trailLine, launchBridgeLine, moonOrbitLine],
+    true,
+  );
+  const visibleHit = hits.find((hit) => hit.object.visible && hit.distance > 0);
+  if (visibleHit) {
+    return {
+      point: visibleHit.point.clone(),
+      distance: zoomDistanceForObject(visibleHit.object),
+    };
+  }
+
+  return {
+    point: (orion.visible ? orion.position : rocket.position).clone(),
+    distance: 1.2,
+  };
+}
+
+function zoomDistanceForObject(object) {
+  let node = object;
+  while (node) {
+    if (node === earth) return 2.65;
+    if (node === moon) return 0.95;
+    if (node === orion || node === rocket) return 0.72;
+    if (node === trajectoryLine || node === trailLine || node === launchBridgeLine || node === moonOrbitLine) return 1.4;
+    node = node.parent;
+  }
+  return 1.4;
+}
+
+function zoomToPoint(point, distance) {
+  const direction = camera.position.clone().sub(point);
+  if (direction.lengthSq() < 0.001) {
+    camera.getWorldDirection(direction).multiplyScalar(-1);
+  }
+  direction.normalize();
+  setActiveView("free");
+  controls.target.copy(point);
+  camera.position.copy(point).add(direction.multiplyScalar(distance));
+  controls.update();
+}
