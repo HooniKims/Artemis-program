@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artemis II Integrity Experience</title>
+    <meta
+      name="description"
+      content="NASA Artemis II ephemeris 기반 인터랙티브 3D 유인 달 비행 시뮬레이션"
+    />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="mission-canvas" aria-label="Artemis II 3D mission simulation"></canvas>
+
+      <section class="hud hud-primary" aria-label="Mission telemetry">
+        <div class="mission-kicker">NASA Artemis II / Orion Integrity</div>
+        <h1>아르테미스 II 체험 시뮬레이터</h1>
+        <div class="stage-row">
+          <span id="stage-pill" class="stage-pill">LOADING</span>
+          <span id="signal-pill" class="signal-pill">SIGNAL</span>
+        </div>
+        <dl class="telemetry-grid">
+          <div>
+            <dt>UTC</dt>
+            <dd id="utc-readout">-</dd>
+          </div>
+          <div>
+            <dt>MET</dt>
+            <dd id="met-readout">-</dd>
+          </div>
+          <div>
+            <dt>지구 거리</dt>
+            <dd id="earth-distance">-</dd>
+          </div>
+          <div>
+            <dt>달 거리</dt>
+            <dd id="moon-distance">-</dd>
+          </div>
+          <div>
+            <dt>속도</dt>
+            <dd id="speed-readout">-</dd>
+          </div>
+          <div>
+            <dt>비행 모드</dt>
+            <dd id="mode-readout">-</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="hud hud-panel" aria-label="Mission controls">
+        <div class="panel-header">
+          <span>탐사 컨트롤</span>
+          <button id="toggle-panel" class="icon-button" aria-label="패널 접기">−</button>
+        </div>
+        <div id="panel-body">
+          <div class="control-row transport-row">
+            <button id="play-button" class="command-button">재생</button>
+            <button id="reset-button" class="ghost-button">발사 시점</button>
+            <label>
+              속도
+              <select id="speed-select">
+                <option value="60">실시간 x60</option>
+                <option value="600" selected>실시간 x600</option>
+                <option value="3600">실시간 x3600</option>
+                <option value="21600">실시간 x21600</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="timeline-label" for="time-slider">
+            임무 타임라인
+            <input id="time-slider" type="range" min="0" max="10000" value="0" />
+          </label>
+
+          <div class="button-grid view-grid" aria-label="카메라 시점">
+            <button data-view="overview" class="view-button active">전체 궤적</button>
+            <button data-view="earth" class="view-button">지구 궤도</button>
+            <button data-view="window" class="view-button">창밖 시점</button>
+            <button data-view="moon" class="view-button">달 근접</button>
+            <button data-view="reentry" class="view-button">재진입</button>
+            <button data-view="free" class="view-button">자유 시점</button>
+          </div>
+
+          <div class="toggle-grid">
+            <label><input id="toggle-trail" type="checkbox" checked /> 진행 궤적</label>
+            <label><input id="toggle-belts" type="checkbox" checked /> 방사선대</label>
+            <label><input id="toggle-labels" type="checkbox" checked /> 라벨</label>
+            <label><input id="toggle-cockpit" type="checkbox" /> 창 프레임</label>
+          </div>
+
+          <ol id="event-list" class="event-list" aria-label="Mission milestones"></ol>
+        </div>
+      </section>
+
+      <section class="hud hud-brief" aria-label="Context brief">
+        <div id="brief-title" class="brief-title">자료 로딩 중</div>
+        <p id="brief-body">
+          NASA AROW OEM 상태벡터와 공개 임무 타임라인을 결합해 장면을 구성하고 있습니다.
+        </p>
+        <div id="source-chip" class="source-chip">NASA/JSC/FOD/FDO OEM</div>
+      </section>
+
+      <div id="label-layer" class="label-layer" aria-hidden="true"></div>
+      <div id="cockpit-overlay" class="cockpit-overlay" aria-hidden="true">
+        <div class="window-frame"></div>
+        <div class="window-reflection reflection-a"></div>
+        <div class="window-reflection reflection-b"></div>
+      </div>
+      <div id="loading-screen" class="loading-screen">
+        <span>NASA ephemeris 로딩 중</span>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "artemis-ii-experience",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:data": "node scripts/build-mission-data.js",
+    "dev": "vite --host 0.0.0.0",
+    "build": "npm run build:data && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test:smoke": "node scripts/smoke-test.js"
+  },
+  "dependencies": {
+    "astronomy-engine": "^2.1.19",
+    "three": "^0.179.1",
+    "vite": "^7.0.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}
